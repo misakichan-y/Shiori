@@ -5,6 +5,8 @@ pub mod swapchain;
 pub mod render_pass;
 pub mod framebuffer;
 pub mod pipeline;
+pub mod command;
+pub mod draw;
 
 
 use crate::engine::renderer::instance::VulkanInstance;
@@ -14,6 +16,9 @@ use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::render_pass::RenderPass;
 use crate::engine::renderer::framebuffer::Framebuffers;
 use crate::engine::renderer::pipeline::Pipeline;
+use crate::engine::renderer::command::Commands;
+use crate::engine::renderer::draw::Draw;
+
 
 
 use winit::window::Window;
@@ -26,6 +31,8 @@ pub struct Renderer {
     pub render_pass: Option<RenderPass>,
     pub framebuffers: Option<Framebuffers>,
     pub pipeline: Option<Pipeline>,
+    pub commands: Option<Commands>,
+    pub draw: Option<Draw>,
 }
 
 impl Renderer {
@@ -41,6 +48,8 @@ impl Renderer {
             render_pass: None,
             framebuffers: None,
             pipeline: None,
+            commands: None,
+            draw: None,
         }
     }
 
@@ -124,5 +133,29 @@ impl Renderer {
         self.pipeline = Some(pipeline);
 
                                                 
+    }
+    pub fn create_commands(&mut self) {
+        let device = self.device.as_ref().unwrap();
+        let swapchain = self.swapchain.as_ref().unwrap();
+        let render_pass = self.render_pass.as_ref().unwrap();
+        let framebuffer = self.framebuffers.as_ref().unwrap();
+        let pipeline = self.pipeline.as_ref().unwrap();
+
+        let commands = Commands::new(
+            device,
+            swapchain,
+            render_pass,
+            framebuffer,
+            pipeline,
+        );
+
+        self.commands = Some(commands);
+    }
+    pub fn create_draw(&mut self) {
+        let device = self.device.as_ref().unwrap();
+
+        let draw = Draw::new(device);
+
+        self.draw = Some(draw);
     }
 }

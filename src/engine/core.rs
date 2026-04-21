@@ -31,6 +31,8 @@ impl Engine {
        renderer.create_render_pass();
        renderer.create_framebuffers();
        renderer.create_pipeline();
+       renderer.create_commands();
+       renderer.create_draw();
 
 
         let window = std::sync::Arc::new(window);
@@ -45,7 +47,12 @@ impl Engine {
                         }
 
                         WindowEvent::RedrawRequested => {
-                           println!("Drawing frame...");
+                           let draw = renderer.draw.as_ref().unwrap();
+                           let device = renderer.device.as_ref().unwrap();
+                           let swapchain = renderer.swapchain.as_ref().unwrap();
+                           let commands = renderer.commands.as_ref().unwrap();
+
+                           draw.draw_frame(device, swapchain, commands);
                         }
 
                         _ => {}
