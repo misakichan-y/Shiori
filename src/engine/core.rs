@@ -28,6 +28,10 @@ impl Engine {
        renderer.create_surface(&window);
        renderer.create_device();
        renderer.create_swapchain();
+       renderer.create_render_pass();
+       renderer.create_framebuffers();
+       renderer.create_pipeline();
+
 
         let window = std::sync::Arc::new(window);
         let window_clone = window.clone();
