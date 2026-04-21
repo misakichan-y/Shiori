@@ -1,0 +1,13 @@
+Vulkan Baby Started
+Surface Works
+Found 2 GPU(s)
+Using first GPU
+Graphics+Present queue at index 0
+Logical device + queue created!
+Device created! whooohoooo
+Swapchain created with 4 images
+Swapchain created!
+Render pass created!
+Framebuffers created: 4
+Pipeline created!
+Command buffers recorded!
