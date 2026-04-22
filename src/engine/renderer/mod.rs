@@ -19,7 +19,7 @@ use crate::engine::renderer::framebuffer::Framebuffers;
 use crate::engine::renderer::pipeline::Pipeline;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::draw::Draw;
-
+use crate::engine::renderer::render_object::RenderObject;
 
 
 use winit::window::Window;
@@ -158,5 +158,13 @@ impl Renderer {
         let draw = Draw::new(device);
 
         self.draw = Some(draw);
+    }
+    pub fn render(&mut self, scene: &Scene) {
+        let device = self.device.as_ref().unwrap();
+        let swapchain = self.swapchain.as_ref().unwrap();
+        let commands = self.commands.as_ref().unwrap();
+        let draw = self.draw.as_ref().unwrap();
+
+        draw.draw_frame(device, swapchain, commands, scene);
     }
 }

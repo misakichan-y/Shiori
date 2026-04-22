@@ -68,17 +68,16 @@ impl Pipeline {
             },
         ];
 
-        // 🔹 FIXED: correct structs
-        let vertex_input = vk::PipelineVertexInputStateCreateInfo {
-            ..Default::default()
-        };
+        // 🔹 Vertex input
+        let vertex_input = vk::PipelineVertexInputStateCreateInfo::default();
 
+        // 🔹 Input assembly
         let input_assembly = vk::PipelineInputAssemblyStateCreateInfo {
             topology: vk::PrimitiveTopology::TRIANGLE_LIST,
-            primitive_restart_enable: vk::FALSE,
             ..Default::default()
         };
 
+        // 🔹 Viewport
         let viewport = vk::Viewport {
             x: 0.0,
             y: 0.0,
@@ -101,6 +100,7 @@ impl Pipeline {
             ..Default::default()
         };
 
+        // 🔹 Rasterizer
         let rasterizer = vk::PipelineRasterizationStateCreateInfo {
             polygon_mode: vk::PolygonMode::FILL,
             line_width: 1.0,
@@ -109,11 +109,13 @@ impl Pipeline {
             ..Default::default()
         };
 
+        // 🔹 Multisampling
         let multisample = vk::PipelineMultisampleStateCreateInfo {
             rasterization_samples: vk::SampleCountFlags::TYPE_1,
             ..Default::default()
         };
 
+        // 🔹 Color blending
         let color_blend_attachment = vk::PipelineColorBlendAttachmentState {
             color_write_mask: vk::ColorComponentFlags::RGBA,
             blend_enable: vk::FALSE,
@@ -126,12 +128,26 @@ impl Pipeline {
             ..Default::default()
         };
 
+        // 🔥 PUSH CONSTANT (FIXED)
+        let push_constant_range = vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: std::mem::size_of::<[f32; 2]>() as u32, // vec2 offset
+        };
+
+        let layout_info = vk::PipelineLayoutCreateInfo {
+            push_constant_range_count: 1,
+            p_push_constant_ranges: &push_constant_range,
+            ..Default::default()
+        };
+
         let layout = unsafe {
             device.device
-                .create_pipeline_layout(&vk::PipelineLayoutCreateInfo::default(), None)
+                .create_pipeline_layout(&layout_info, None)
                 .unwrap()
         };
 
+        // 🔹 Pipeline
         let pipeline_info = vk::GraphicsPipelineCreateInfo {
             stage_count: stages.len() as u32,
             p_stages: stages.as_ptr(),
