@@ -56,7 +56,7 @@ impl Engine {
                            let swapchain = renderer.swapchain.as_ref().unwrap();
                            let commands = renderer.commands.as_ref().unwrap();
 
-                           draw.draw_frame(device, swapchain, commands);
+                           draw.draw_frame(device, swapchain, commands, &scene);
                         }
 
                         _ => {}

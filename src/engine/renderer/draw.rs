@@ -3,6 +3,7 @@ use ash::vk;
 use crate::engine::renderer::device::Device;
 use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::command::Commands;
+use crate::engine::scene::scene::Scene;
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -36,6 +37,7 @@ impl Draw {
         device: &Device,
         swapchain: &Swapchain,
         commands: &Commands,
+        scene: &Scene,
     ) {
         let (image_index, _) = unsafe {
             swapchain.loader.acquire_next_image(
@@ -45,6 +47,7 @@ impl Draw {
                 vk::Fence::null(),
             ).unwrap()
         };
+        
 
         let wait_semaphores = [self.image_available];
         let signal_semaphores = [self.render_finished];
@@ -63,6 +66,7 @@ impl Draw {
 
             ..Default::default()
         };
+
 
         unsafe {
             device.device

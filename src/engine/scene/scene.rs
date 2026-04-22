@@ -22,8 +22,11 @@ impl Scene {
     pub fn update(&mut self) {
         // Update logic for the scene, e.g., animations, physics, etc.
         for entity in &mut self.entities {
-            // Update each entity's transform or other properties as needed
-            let _ = entity;
+           entity.transform.rotation[0] += 0.01; // Example: Rotate all entities
+
+           if entity.transform.rotation[0] > 1.0 {
+               entity.transform.rotation[0] = -1.0,
+           }
         }
     }
 }

@@ -3,6 +3,7 @@ use super::transform::Transform;
 pub struct Entity {
     pub transform: Transform,
     pub id: u32,
+    pub visible: bool,
 }
 
 impl Entity {
@@ -10,6 +11,7 @@ impl Entity {
         Self {
             transform: Transform::new(),
             id,
+            visible: true,
         }
     }
 }
