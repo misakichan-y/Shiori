@@ -1,8 +1,10 @@
 use super::entity::Entity;
 use crate::engine::renderer::render_object::RenderObject;
+use super::camera::Camera;
 
 pub struct Scene {
     pub entities: Vec<Entity>,
+    pub camera: Camera,
     next_id: u32,
 }
 
@@ -10,6 +12,7 @@ impl Scene {
     pub fn new() -> Self {
         Self {
             entities: Vec::new(),
+            camera: Camera::new(),
             next_id: 0,
         }
     }

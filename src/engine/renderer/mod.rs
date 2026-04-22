@@ -22,6 +22,9 @@ use crate::engine::renderer::draw::Draw;
 use crate::engine::renderer::render_object::RenderObject;
 use crate::engine::renderer::instance_buffer::InstanceBuffer;
 
+// 🔥 ADD THIS (camera)
+use crate::engine::scene::camera::Camera;
+
 use winit::window::Window;
 
 pub struct Renderer {
@@ -35,7 +38,6 @@ pub struct Renderer {
     commands: Option<Commands>,
     draw: Option<Draw>,
     instance_buffer: Option<InstanceBuffer>,
-
 }
 
 impl Renderer {
@@ -58,7 +60,7 @@ impl Renderer {
         }
     }
 
-    // 🔥 SINGLE ENTRY POINT FOR SETUP
+    // 🔥 SINGLE ENTRY POINT
     pub fn init(&mut self, window: &Window) {
         self.create_surface(window);
         self.create_device();
@@ -71,7 +73,8 @@ impl Renderer {
         self.create_instance_buffer();
     }
 
-    // 🔒 INTERNAL SETUP (HIDDEN)
+    // 🔒 INTERNAL SETUP
+
     fn create_surface(&mut self, window: &Window) {
         let surface = Surface::new(
             &self.instance.entry,
@@ -165,8 +168,14 @@ impl Renderer {
         self.draw = Some(draw);
     }
 
-    // 🔥 PUBLIC RENDER API
-    pub fn render(&self, objects: &[RenderObject]) {
+    fn create_instance_buffer(&mut self) {
+        let device = self.device.as_ref().unwrap();
+        let buffer = InstanceBuffer::new(device, 1000);
+        self.instance_buffer = Some(buffer);
+    }
+
+    // 🔥 FINAL RENDER FUNCTION (ONLY ONE)
+    pub fn render(&self, objects: &[RenderObject], camera: &Camera) {
         if self.device.is_none() {
             return;
         }
@@ -175,18 +184,20 @@ impl Renderer {
         let swapchain = self.swapchain.as_ref().unwrap();
         let commands = self.commands.as_ref().unwrap();
         let draw = self.draw.as_ref().unwrap();
-        let instance_buffer = self.instance_buffer.as_ref().unwrap();   
+        let instance_buffer = self.instance_buffer.as_ref().unwrap();
 
-        draw.draw_frame(device, swapchain, commands, objects, instance_buffer);
+        draw.draw_frame(
+            device,
+            swapchain,
+            commands,
+            objects,
+            instance_buffer,
+            camera,
+        );
     }
 
-    // 🔥 RESIZE (stub for now)
+    // 🔥 Resize (stub)
     pub fn resize(&mut self, _width: u32, _height: u32) {
         println!("Resize not implemented yet");
-    }
-    pub fn create_instance_buffer(&mut self) {
-        let device = self.device.as_ref().unwrap();
-        let buffer = InstanceBuffer::new(device, 1000);
-        self.instance_buffer = Some(buffer);
     }
 }

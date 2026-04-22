@@ -5,6 +5,7 @@ use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::render_object::RenderObject;
 use crate::engine::renderer::instance_buffer::InstanceBuffer;
+use crate::engine::scene::camera::Camera;
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -36,6 +37,7 @@ impl Draw {
         commands: &Commands,
         objects: &[RenderObject],
         instance_buffer: &InstanceBuffer,
+        camera: &Camera,
     ) {
         // 🔹 Acquire image
         let (image_index, _) = unsafe {
@@ -90,6 +92,20 @@ impl Draw {
                 commands.pipeline,
             );
 
+            // 🔥 SEND CAMERA TO SHADER (CRITICAL)
+            let cam = camera.get_matrix();
+
+            device.device.cmd_push_constants(
+                cmd,
+                commands.layout,
+                vk::ShaderStageFlags::VERTEX,
+                0,
+                std::slice::from_raw_parts(
+                    cam.as_ptr() as *const u8,
+                    std::mem::size_of::<[f32; 9]>(),
+                ),
+            );
+
             // 🔹 Viewport + Scissor
             let viewport = vk::Viewport {
                 x: 0.0,
@@ -108,7 +124,7 @@ impl Draw {
             device.device.cmd_set_viewport(cmd, 0, &[viewport]);
             device.device.cmd_set_scissor(cmd, 0, &[scissor]);
 
-            // 🔥 ===== INSTANCING WITH TRANSFORM =====
+            // 🔥 ===== INSTANCING WITH TRANSFORMS =====
 
             let instance_data: Vec<[f32; 5]> = objects.iter().map(|o| {
                 [
@@ -119,6 +135,9 @@ impl Draw {
                     o.scale[1],
                 ]
             }).collect();
+             
+             // 🔥 DEBUG: how many instances will be drawn?
+             println!("instances to draw: {}", instance_data.len());
 
             let size =
                 (instance_data.len() * std::mem::size_of::<[f32; 5]>()) as u64;
@@ -206,7 +225,9 @@ impl Draw {
                 .queue_present(device.graphics_queue, &present_info)
                 .unwrap();
 
+            // ⚠️ temporary (slow but safe)
             device.device.queue_wait_idle(device.graphics_queue).unwrap();
         }
+        
     }
 }

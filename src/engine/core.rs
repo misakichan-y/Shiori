@@ -50,7 +50,8 @@ impl Engine {
                         // 🔥 Render frame
                         WindowEvent::RedrawRequested => {
                             let objects = scene.extract_render_data();
-                            renderer.render(&objects);
+                            renderer.render(&objects, &scene.camera);
+
                         }
 
                         // 🔥 Handle resize (stub for now)
