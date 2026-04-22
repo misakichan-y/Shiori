@@ -5,6 +5,7 @@ use winit::{
 };
 
 use crate::engine::renderer::Renderer;
+use crate::engine::scene::scene::Scene;
 
 pub struct Engine {
     pub event_loop: EventLoop<()>,
@@ -34,6 +35,9 @@ impl Engine {
        renderer.create_commands();
        renderer.create_draw();
 
+       let mut scene = Scene::new();
+         scene.add_entity();
+
 
         let window = std::sync::Arc::new(window);
         let window_clone = window.clone();
@@ -60,7 +64,8 @@ impl Engine {
 
                     // This keeps the window updating
                     Event::AboutToWait => {
-                        window_clone.request_redraw();
+                       scene.update();
+                       window_clone.request_redraw();
                     }
 
                     _ => {}
