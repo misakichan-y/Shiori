@@ -8,6 +8,7 @@ pub mod pipeline;
 pub mod command;
 pub mod draw;
 pub mod render_object;
+pub mod instance_buffer;
 
 use crate::engine::renderer::instance::VulkanInstance;
 use crate::engine::renderer::surface::Surface;
@@ -19,6 +20,7 @@ use crate::engine::renderer::pipeline::Pipeline;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::draw::Draw;
 use crate::engine::renderer::render_object::RenderObject;
+use crate::engine::renderer::instance_buffer::InstanceBuffer;
 
 use winit::window::Window;
 
@@ -32,6 +34,8 @@ pub struct Renderer {
     pipeline: Option<Pipeline>,
     commands: Option<Commands>,
     draw: Option<Draw>,
+    instance_buffer: Option<InstanceBuffer>,
+
 }
 
 impl Renderer {
@@ -50,6 +54,7 @@ impl Renderer {
             pipeline: None,
             commands: None,
             draw: None,
+            instance_buffer: None,
         }
     }
 
@@ -63,6 +68,7 @@ impl Renderer {
         self.create_pipeline();
         self.create_commands();
         self.create_draw();
+        self.create_instance_buffer();
     }
 
     // 🔒 INTERNAL SETUP (HIDDEN)
@@ -169,12 +175,18 @@ impl Renderer {
         let swapchain = self.swapchain.as_ref().unwrap();
         let commands = self.commands.as_ref().unwrap();
         let draw = self.draw.as_ref().unwrap();
+        let instance_buffer = self.instance_buffer.as_ref().unwrap();   
 
-        draw.draw_frame(device, swapchain, commands, objects);
+        draw.draw_frame(device, swapchain, commands, objects, instance_buffer);
     }
 
     // 🔥 RESIZE (stub for now)
     pub fn resize(&mut self, _width: u32, _height: u32) {
         println!("Resize not implemented yet");
+    }
+    pub fn create_instance_buffer(&mut self) {
+        let device = self.device.as_ref().unwrap();
+        let buffer = InstanceBuffer::new(device, 1000);
+        self.instance_buffer = Some(buffer);
     }
 }

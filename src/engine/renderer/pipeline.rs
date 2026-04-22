@@ -68,8 +68,41 @@ impl Pipeline {
             },
         ];
 
-        // 🔹 Vertex input
-        let vertex_input = vk::PipelineVertexInputStateCreateInfo::default();
+        // 🔥 INSTANCING INPUT (correct)
+        let binding = vk::VertexInputBindingDescription {
+        binding: 0,
+        stride: std::mem::size_of::<[f32; 5]>() as u32, // pos(2) + rot(1) + scale(2)
+        input_rate: vk::VertexInputRate::INSTANCE,
+    };
+
+        let attributes = [
+            vk::VertexInputAttributeDescription {
+            location: 0,
+            binding: 0,
+            format: vk::Format::R32G32_SFLOAT,
+            offset: 0,
+        },
+            vk::VertexInputAttributeDescription {
+            location: 1,
+            binding: 0,
+            format: vk::Format::R32_SFLOAT,
+            offset: 8,
+        },
+            vk::VertexInputAttributeDescription {
+            location: 2,
+            binding: 0,
+            format: vk::Format::R32G32_SFLOAT,
+            offset: 12,
+        },
+];
+
+let vertex_input = vk::PipelineVertexInputStateCreateInfo {
+    vertex_binding_description_count: 1,
+    p_vertex_binding_descriptions: &binding,
+    vertex_attribute_description_count: attributes.len() as u32,
+    p_vertex_attribute_descriptions: attributes.as_ptr(),
+    ..Default::default()
+};
 
         // 🔹 Input assembly
         let input_assembly = vk::PipelineInputAssemblyStateCreateInfo {
@@ -77,7 +110,7 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔹 Viewport
+        // 🔹 Viewport (static)
         let viewport = vk::Viewport {
             x: 0.0,
             y: 0.0,
@@ -128,18 +161,8 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥 PUSH CONSTANT (FIXED)
-        let push_constant_range = vk::PushConstantRange {
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            offset: 0,
-            size: std::mem::size_of::<[f32; 2]>() as u32, // vec2 offset
-        };
-
-        let layout_info = vk::PipelineLayoutCreateInfo {
-            push_constant_range_count: 1,
-            p_push_constant_ranges: &push_constant_range,
-            ..Default::default()
-        };
+        // 🔥 NO PUSH CONSTANTS (clean)
+        let layout_info = vk::PipelineLayoutCreateInfo::default();
 
         let layout = unsafe {
             device.device

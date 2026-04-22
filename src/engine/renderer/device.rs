@@ -1,6 +1,7 @@
 use ash::{vk, Instance};
 
 pub struct Device {
+    pub instance: ash::Instance,
     pub physical_device: vk::PhysicalDevice,
     pub device: ash::Device,
     pub graphics_queue: vk::Queue,
@@ -97,6 +98,7 @@ impl Device {
             device,
             graphics_queue,
             queue_family_index,
+            instance: instance.clone(),
         }
     }
 }

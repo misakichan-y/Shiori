@@ -4,6 +4,7 @@ use crate::engine::renderer::device::Device;
 use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::render_object::RenderObject;
+use crate::engine::renderer::instance_buffer::InstanceBuffer;
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -34,6 +35,7 @@ impl Draw {
         swapchain: &Swapchain,
         commands: &Commands,
         objects: &[RenderObject],
+        instance_buffer: &InstanceBuffer,
     ) {
         // 🔹 Acquire image
         let (image_index, _) = unsafe {
@@ -88,7 +90,7 @@ impl Draw {
                 commands.pipeline,
             );
 
-            // 🔥 SET VIEWPORT + SCISSOR (CRITICAL)
+            // 🔹 Viewport + Scissor
             let viewport = vk::Viewport {
                 x: 0.0,
                 y: 0.0,
@@ -106,28 +108,58 @@ impl Draw {
             device.device.cmd_set_viewport(cmd, 0, &[viewport]);
             device.device.cmd_set_scissor(cmd, 0, &[scissor]);
 
-            // 🔹 Draw objects
-            for obj in objects {
-                let offset = obj.position;
+            // 🔥 ===== INSTANCING WITH TRANSFORM =====
 
-                device.device.cmd_push_constants(
-                    cmd,
-                    commands.layout,
-                    vk::ShaderStageFlags::VERTEX,
+            let instance_data: Vec<[f32; 5]> = objects.iter().map(|o| {
+                [
+                    o.position[0],
+                    o.position[1],
+                    o.rotation,
+                    o.scale[0],
+                    o.scale[1],
+                ]
+            }).collect();
+
+            let size =
+                (instance_data.len() * std::mem::size_of::<[f32; 5]>()) as u64;
+
+            let data_ptr = device.device
+                .map_memory(
+                    instance_buffer.memory,
                     0,
-                    std::slice::from_raw_parts(
-                        offset.as_ptr() as *const u8,
-                        std::mem::size_of::<[f32; 2]>(),
-                    ),
-                );
+                    size,
+                    vk::MemoryMapFlags::empty(),
+                )
+                .unwrap();
 
-                device.device.cmd_draw(cmd, 3, 1, 0, 0);
-            }
+            std::ptr::copy_nonoverlapping(
+                instance_data.as_ptr() as *const u8,
+                data_ptr as *mut u8,
+                size as usize,
+            );
 
-            // 🔥 END RENDER PASS
+            device.device.unmap_memory(instance_buffer.memory);
+
+            // 🔹 Bind instance buffer
+            device.device.cmd_bind_vertex_buffers(
+                cmd,
+                0,
+                &[instance_buffer.buffer],
+                &[0],
+            );
+
+            // 🔥 ONE INSTANCED DRAW CALL
+            device.device.cmd_draw(
+                cmd,
+                3,
+                instance_data.len() as u32,
+                0,
+                0,
+            );
+
+            // 🔥 ===== END =====
+
             device.device.cmd_end_render_pass(cmd);
-
-            // 🔹 End command buffer
             device.device.end_command_buffer(cmd).unwrap();
         }
 
@@ -174,7 +206,6 @@ impl Draw {
                 .queue_present(device.graphics_queue, &present_info)
                 .unwrap();
 
-            // ⚠️ Temporary (slow but safe)
             device.device.queue_wait_idle(device.graphics_queue).unwrap();
         }
     }
