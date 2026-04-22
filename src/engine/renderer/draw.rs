@@ -47,7 +47,6 @@ impl Draw {
                 vk::Fence::null(),
             ).unwrap()
         };
-        
 
         let wait_semaphores = [self.image_available];
         let signal_semaphores = [self.render_finished];
@@ -66,7 +65,6 @@ impl Draw {
 
             ..Default::default()
         };
-
 
         unsafe {
             device.device

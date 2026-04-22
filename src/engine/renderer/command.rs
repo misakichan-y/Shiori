@@ -5,6 +5,7 @@ use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::render_pass::RenderPass;
 use crate::engine::renderer::framebuffer::Framebuffers;
 use crate::engine::renderer::pipeline::Pipeline;
+use crate::engine::scene::scene::Scene;
 
 pub struct Commands {
     pub command_pool: vk::CommandPool,
@@ -18,6 +19,8 @@ impl Commands {
         render_pass: &RenderPass,
         framebuffers: &Framebuffers,
         pipeline: &Pipeline,
+        scene: &Scene,
+
     ) -> Self {
         
         let pool_info = vk::CommandPoolCreateInfo {
@@ -60,6 +63,7 @@ impl Commands {
                     float32: [0.1, 0.1, 0.1, 1.0],
                 },
             }];
+
 
             let render_pass_info = vk::RenderPassBeginInfo {
                 render_pass: render_pass.render_pass,
