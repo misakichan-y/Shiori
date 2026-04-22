@@ -7,8 +7,7 @@ pub mod framebuffer;
 pub mod pipeline;
 pub mod command;
 pub mod draw;
-
-
+pub mod render_object;
 
 use crate::engine::renderer::instance::VulkanInstance;
 use crate::engine::renderer::surface::Surface;
@@ -21,22 +20,22 @@ use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::draw::Draw;
 use crate::engine::renderer::render_object::RenderObject;
 
-
 use winit::window::Window;
 
 pub struct Renderer {
-    pub instance: VulkanInstance,
-    pub surface: Option<Surface>,
-    pub device: Option<Device>,
-    pub swapchain: Option<Swapchain>,
-    pub render_pass: Option<RenderPass>,
-    pub framebuffers: Option<Framebuffers>,
-    pub pipeline: Option<Pipeline>,
-    pub commands: Option<Commands>,
-    pub draw: Option<Draw>,
+    instance: VulkanInstance,
+    surface: Option<Surface>,
+    device: Option<Device>,
+    swapchain: Option<Swapchain>,
+    render_pass: Option<RenderPass>,
+    framebuffers: Option<Framebuffers>,
+    pipeline: Option<Pipeline>,
+    commands: Option<Commands>,
+    draw: Option<Draw>,
 }
 
 impl Renderer {
+    // 🔥 Constructor
     pub fn new() -> Self {
         let instance = VulkanInstance::new();
         println!("Vulkan Baby Started");
@@ -54,8 +53,20 @@ impl Renderer {
         }
     }
 
-    // 🔥 Create Surface
-    pub fn create_surface(&mut self, window: &Window) {
+    // 🔥 SINGLE ENTRY POINT FOR SETUP
+    pub fn init(&mut self, window: &Window) {
+        self.create_surface(window);
+        self.create_device();
+        self.create_swapchain();
+        self.create_render_pass();
+        self.create_framebuffers();
+        self.create_pipeline();
+        self.create_commands();
+        self.create_draw();
+    }
+
+    // 🔒 INTERNAL SETUP (HIDDEN)
+    fn create_surface(&mut self, window: &Window) {
         let surface = Surface::new(
             &self.instance.entry,
             &self.instance.instance,
@@ -63,12 +74,10 @@ impl Renderer {
         );
 
         println!("Surface Works");
-
         self.surface = Some(surface);
     }
 
-    // 🔥 Create Device (FIXED)
-    pub fn create_device(&mut self) {
+    fn create_device(&mut self) {
         let surface = self.surface.as_ref().unwrap();
 
         let device = Device::new(
@@ -77,13 +86,11 @@ impl Renderer {
             surface.surface,
         );
 
-        println!("Device created! whooohoooo");
-
+        println!("Device created!");
         self.device = Some(device);
     }
 
-    // 🔥 Create Swapchain
-    pub fn create_swapchain(&mut self) {
+    fn create_swapchain(&mut self) {
         let surface = self.surface.as_ref().unwrap();
         let device = self.device.as_ref().unwrap();
 
@@ -91,80 +98,83 @@ impl Renderer {
             &self.instance.instance,
             device,
             surface,
-
         );
 
         println!("Swapchain created!");
-
         self.swapchain = Some(swapchain);
     }
 
-    pub fn create_render_pass(&mut self) {
-        let device =  self.device.as_ref().unwrap();
+    fn create_render_pass(&mut self) {
+        let device = self.device.as_ref().unwrap();
         let swapchain = self.swapchain.as_ref().unwrap();
 
         let render_pass = RenderPass::new(device, swapchain);
-
         self.render_pass = Some(render_pass);
-
     }
-    
-    pub fn create_framebuffers(&mut self) { 
+
+    fn create_framebuffers(&mut self) {
         let device = self.device.as_ref().unwrap();
         let swapchain = self.swapchain.as_ref().unwrap();
         let render_pass = self.render_pass.as_ref().unwrap();
 
-        let framebuffer = Framebuffers::new(
+        let framebuffers = Framebuffers::new(
             device,
             swapchain,
             render_pass,
-
         );
 
-        self.framebuffers = Some(framebuffer);
-
+        self.framebuffers = Some(framebuffers);
     }
-    pub fn create_pipeline(&mut self) {
+
+    fn create_pipeline(&mut self) {
         let device = self.device.as_ref().unwrap();
         let swapchain = self.swapchain.as_ref().unwrap();
         let render_pass = self.render_pass.as_ref().unwrap();
 
         let pipeline = Pipeline::new(device, render_pass, swapchain);
-
         self.pipeline = Some(pipeline);
-
-                                                
     }
-    pub fn create_commands(&mut self) {
+
+    fn create_commands(&mut self) {
         let device = self.device.as_ref().unwrap();
         let swapchain = self.swapchain.as_ref().unwrap();
         let render_pass = self.render_pass.as_ref().unwrap();
-        let framebuffer = self.framebuffers.as_ref().unwrap();
+        let framebuffers = self.framebuffers.as_ref().unwrap();
         let pipeline = self.pipeline.as_ref().unwrap();
 
         let commands = Commands::new(
             device,
             swapchain,
             render_pass,
-            framebuffer,
+            framebuffers,
             pipeline,
         );
 
         self.commands = Some(commands);
     }
-    pub fn create_draw(&mut self) {
+
+    fn create_draw(&mut self) {
         let device = self.device.as_ref().unwrap();
-
         let draw = Draw::new(device);
-
         self.draw = Some(draw);
     }
-    pub fn render(&mut self, scene: &Scene) {
+
+    // 🔥 PUBLIC RENDER API
+    pub fn render(&self, objects: &[RenderObject]) {
+        if self.device.is_none() {
+            return;
+        }
+
         let device = self.device.as_ref().unwrap();
         let swapchain = self.swapchain.as_ref().unwrap();
         let commands = self.commands.as_ref().unwrap();
         let draw = self.draw.as_ref().unwrap();
 
-        draw.draw_frame(device, swapchain, commands, scene);
+        draw.draw_frame(device, swapchain, commands, objects);
+    }
+
+    // 🔥 RESIZE (stub for now)
+    pub fn resize(&mut self, _width: u32, _height: u32) {
+        println!("Resize not implemented yet");
     }
 }

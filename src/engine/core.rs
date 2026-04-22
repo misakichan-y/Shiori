@@ -5,7 +5,7 @@ use winit::{
 };
 
 use crate::engine::renderer::Renderer;
-use crate::engine::scene::scene::Scene;
+use crate::engine::scene::Scene;
 
 pub struct Engine {
     pub event_loop: EventLoop<()>,
@@ -18,30 +18,27 @@ impl Engine {
     }
 
     pub fn run(self) {
+        // 🔥 Create renderer
         let mut renderer = Renderer::new();
 
+        // 🔥 Create window
         let window = WindowBuilder::new()
             .with_title("Shiori")
-            .with_visible(true)
             .build(&self.event_loop)
             .unwrap();
 
-       renderer.create_surface(&window);
-       renderer.create_device();
-       renderer.create_swapchain();
-       renderer.create_render_pass();
-       renderer.create_framebuffers();
-       renderer.create_pipeline();
-       renderer.create_commands();
-       renderer.create_draw();
+        // 🔥 Initialize renderer (single call)
+        renderer.init(&window);
 
-       let mut scene = Scene::new();
-         scene.add_entity();
+        // 🔥 Create scene
+        let mut scene = Scene::new();
+        scene.add_entity();
 
-
+        // Arc for winit loop
         let window = std::sync::Arc::new(window);
         let window_clone = window.clone();
 
+        // 🔥 Event loop
         self.event_loop
             .run(move |event, elwt| {
                 match event {
@@ -50,22 +47,24 @@ impl Engine {
                             elwt.exit();
                         }
 
+                        // 🔥 Render frame
                         WindowEvent::RedrawRequested => {
-                           let draw = renderer.draw.as_ref().unwrap();
-                           let device = renderer.device.as_ref().unwrap();
-                           let swapchain = renderer.swapchain.as_ref().unwrap();
-                           let commands = renderer.commands.as_ref().unwrap();
+                            let objects = scene.extract_render_data();
+                            renderer.render(&objects);
+                        }
 
-                           draw.draw_frame(device, swapchain, commands, &scene);
+                        // 🔥 Handle resize (stub for now)
+                        WindowEvent::Resized(size) => {
+                            renderer.resize(size.width, size.height);
                         }
 
                         _ => {}
                     },
 
-                    // This keeps the window updating
+                    // 🔥 Game loop tick
                     Event::AboutToWait => {
-                       scene.update();
-                       window_clone.request_redraw();
+                        scene.update();
+                        window_clone.request_redraw();
                     }
 
                     _ => {}
