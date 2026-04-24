@@ -11,16 +11,14 @@ impl Camera {
         }
     }
 
-    pub fn get_matrix(&self) -> [f32; 9] {
-        let z = self.zoom;
+   pub fn get_matrix(&self) -> [f32; 16] {
+    let z = self.zoom;
 
-        // 🔥 CORRECT column-major matrix
-        [
-            z,   0.0, 0.0,
-            0.0, z,   0.0,
-            -self.position[0], 
-            -self.position[1],
-            1.0,
-        ]
-    }
+    [
+        z,   0.0, 0.0, 0.0,
+        0.0, z,   0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        -self.position[0], -self.position[1], 0.0, 1.0,
+    ]
+  }
 }

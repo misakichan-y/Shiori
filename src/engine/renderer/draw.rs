@@ -140,7 +140,7 @@ impl Draw {
              println!("instances to draw: {}", instance_data.len());
 
             let size =
-                (instance_data.len() * std::mem::size_of::<[f32; 5]>()) as u64;
+                (instance_data.len() * std::mem::size_of::<[f32; 16]>()) as u64;
 
             let data_ptr = device.device
                 .map_memory(

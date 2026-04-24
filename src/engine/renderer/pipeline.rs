@@ -71,7 +71,7 @@ impl Pipeline {
         // 🔥 INSTANCING INPUT (pos + rot + scale)
         let binding = vk::VertexInputBindingDescription {
             binding: 0,
-            stride: std::mem::size_of::<[f32; 5]>() as u32,
+            stride: std::mem::size_of::<[f32; 16]>() as u32,
             input_rate: vk::VertexInputRate::INSTANCE,
         };
 

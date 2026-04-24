@@ -2,7 +2,7 @@
 
 // 🔥 Camera (push constant)
 layout(push_constant) uniform Camera {
-    mat3 cam;
+    mat4 cam;
 } camera;
 
 // 🔥 Instance data (from buffer)
@@ -36,8 +36,8 @@ void main() {
     pos += instance_pos;
 
     // 🔥 Apply camera
-    vec3 world = vec3(pos, 1.0);
-    vec3 final_pos = camera.cam * world;
+   vec4 final_pos = camera.cam * vec4(pos, 0.0, 1.0);
+   gl_Position = final_pos;
 
     gl_Position = vec4(final_pos.xy, 0.0, 1.0);
 }
