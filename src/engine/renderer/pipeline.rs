@@ -66,7 +66,7 @@ impl Pipeline {
             },
         ];
 
-        // 🔥 SIMPLE VERTEX INPUT
+        // 🔥 Vertex input (vec2)
         let binding = vk::VertexInputBindingDescription {
             binding: 0,
             stride: std::mem::size_of::<[f32; 2]>() as u32,
@@ -142,10 +142,23 @@ impl Pipeline {
             ..Default::default()
         };
 
-        let layout_info = vk::PipelineLayoutCreateInfo::default();
+        // 🔥 PUSH CONSTANT (vec4 SAFE)
+        let push_constant_range = vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: std::mem::size_of::<[f32; 4]>() as u32,
+        };
+
+        let layout_info = vk::PipelineLayoutCreateInfo {
+            push_constant_range_count: 1,
+            p_push_constant_ranges: &push_constant_range,
+            ..Default::default()
+        };
 
         let layout = unsafe {
-            device.device.create_pipeline_layout(&layout_info, None).unwrap()
+            device.device
+                .create_pipeline_layout(&layout_info, None)
+                .unwrap()
         };
 
         let pipeline_info = vk::GraphicsPipelineCreateInfo {

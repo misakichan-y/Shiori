@@ -8,13 +8,18 @@ pub struct VertexBuffer {
 
 impl VertexBuffer {
     pub fn new(device: &Device) -> Self {
-        let vertices: [[f32; 2]; 3] = [
-            [0.0, -0.5],
-            [0.5, 0.5],
-            [-0.5, 0.5],
-        ];
 
-        let size = (vertices.len() * std::mem::size_of::<[f32; 2]>()) as u64;
+     let vertices: [f32; 12] = [
+    -0.5, -0.5,
+     0.5, -0.5,
+     0.5,  0.5,
+
+    -0.5, -0.5,
+     0.5,  0.5,
+    -0.5,  0.5,
+];
+
+        let size = (vertices.len() * std::mem::size_of::<[f32; 4]>()) as u64;
 
         let buffer_info = vk::BufferCreateInfo {
             size,

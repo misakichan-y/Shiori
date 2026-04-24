@@ -10,6 +10,8 @@ pub mod draw;
 pub mod render_object;
 pub mod vertex_buffer;
 
+use std::time;
+
 use crate::engine::renderer::instance::VulkanInstance;
 use crate::engine::renderer::surface::Surface;
 use crate::engine::renderer::device::Device;
@@ -34,6 +36,7 @@ pub struct Renderer {
     commands: Option<Commands>,
     draw: Option<Draw>,
     vertex_buffer: Option<VertexBuffer>,
+    start_time: std::time::Instant,
 }
 
 impl Renderer {
@@ -52,6 +55,8 @@ impl Renderer {
             commands: None,
             draw: None,
             vertex_buffer: None,
+            start_time: std::time::Instant::now(),
+
         }
     }
 
@@ -177,12 +182,14 @@ impl Renderer {
         let commands = self.commands.as_ref().unwrap();
         let draw = self.draw.as_ref().unwrap();
         let vertex_buffer = self.vertex_buffer.as_ref().unwrap();
+        let time = self.start_time.elapsed().as_secs_f32();
 
         draw.draw_frame(
             device,
             swapchain,
             commands,
             vertex_buffer,
+            time,
         );
     }
 

@@ -3,7 +3,7 @@ use ash::vk;
 use crate::engine::renderer::device::Device;
 use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::command::Commands;
-use crate::engine::renderer::vertex_buffer::VertexBuffer; // 👈 IMPORTANT
+use crate::engine::renderer::vertex_buffer::VertexBuffer;
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -33,9 +33,9 @@ impl Draw {
         device: &Device,
         swapchain: &Swapchain,
         commands: &Commands,
-        vertex_buffer: &VertexBuffer, // 👈 ONLY THIS
+        vertex_buffer: &VertexBuffer,
+        time: f32, // 🔥 comes from renderer
     ) {
-        // 🔹 Acquire image
         let (image_index, _) = unsafe {
             swapchain.loader.acquire_next_image(
                 swapchain.swapchain,
@@ -48,7 +48,6 @@ impl Draw {
         let cmd = commands.buffers[image_index as usize];
 
         unsafe {
-            // 🔹 Reset + begin
             device.device
                 .reset_command_buffer(cmd, vk::CommandBufferResetFlags::empty())
                 .unwrap();
@@ -58,7 +57,7 @@ impl Draw {
                 &vk::CommandBufferBeginInfo::default(),
             ).unwrap();
 
-            // 🔥 RENDER PASS
+            // 🔥 CLEAR
             let clear = vk::ClearValue {
                 color: vk::ClearColorValue {
                     float32: [0.1, 0.1, 0.1, 1.0],
@@ -83,14 +82,14 @@ impl Draw {
                 vk::SubpassContents::INLINE,
             );
 
-            // 🔹 Bind pipeline
+            // 🔹 PIPELINE
             device.device.cmd_bind_pipeline(
                 cmd,
                 vk::PipelineBindPoint::GRAPHICS,
                 commands.pipeline,
             );
 
-            // 🔹 Viewport
+            // 🔹 VIEWPORT + SCISSOR
             let viewport = vk::Viewport {
                 x: 0.0,
                 y: 0.0,
@@ -108,7 +107,22 @@ impl Draw {
             device.device.cmd_set_viewport(cmd, 0, &[viewport]);
             device.device.cmd_set_scissor(cmd, 0, &[scissor]);
 
-            // 🔥 Bind vertex buffer (THIS IS KEY)
+            // 🔥 ANIMATION (CORRECT)
+            let x = (time * 2.0).sin() * 0.5;
+            let pos: [f32; 4] = [x, 0.0, 0.0, 0.0];
+
+            device.device.cmd_push_constants(
+                cmd,
+                commands.layout,
+                vk::ShaderStageFlags::VERTEX,
+                0,
+                std::slice::from_raw_parts(
+                    pos.as_ptr() as *const u8,
+                    std::mem::size_of::<[f32; 4]>(),
+                ),
+            );
+
+            // 🔹 VERTEX BUFFER
             device.device.cmd_bind_vertex_buffers(
                 cmd,
                 0,
@@ -116,21 +130,14 @@ impl Draw {
                 &[0],
             );
 
-            // 🔥 DRAW TRIANGLE
-            device.device.cmd_draw(
-                cmd,
-                3, // 3 vertices
-                1, // 1 instance
-                0,
-                0,
-            );
+            // 🔥 DRAW
+            device.device.cmd_draw(cmd, 3, 1, 0, 0);
 
-            // 🔹 End render pass
             device.device.cmd_end_render_pass(cmd);
             device.device.end_command_buffer(cmd).unwrap();
         }
 
-        // 🔹 Submit
+        // 🔹 SUBMIT
         let wait_semaphores = [self.image_available];
         let signal_semaphores = [self.render_finished];
         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
@@ -152,7 +159,7 @@ impl Draw {
                 .unwrap();
         }
 
-        // 🔹 Present
+        // 🔹 PRESENT
         let swapchains = [swapchain.swapchain];
 
         let present_info = vk::PresentInfoKHR {
