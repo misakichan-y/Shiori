@@ -9,6 +9,7 @@ use crate::engine::renderer::swapchain::Swapchain;
 pub struct Pipeline {
     pub pipeline: vk::Pipeline,
     pub layout: vk::PipelineLayout,
+    pub descriptor_set_layout: vk::DescriptorSetLayout, // 🔥
 }
 
 fn read_shader(path: &str) -> Vec<u32> {
@@ -66,10 +67,10 @@ impl Pipeline {
             },
         ];
 
-        // 🔥 Vertex input (vec2)
+        // 🔥 Vertex input (pos + uv)
         let binding = vk::VertexInputBindingDescription {
             binding: 0,
-            stride: std::mem::size_of::<[f32; 2]>() as u32,
+            stride: (4 * std::mem::size_of::<f32>()) as u32,
             input_rate: vk::VertexInputRate::VERTEX,
         };
 
@@ -79,6 +80,12 @@ impl Pipeline {
                 binding: 0,
                 format: vk::Format::R32G32_SFLOAT,
                 offset: 0,
+            },
+            vk::VertexInputAttributeDescription {
+                location: 1,
+                binding: 0,
+                format: vk::Format::R32G32_SFLOAT,
+                offset: (2 * std::mem::size_of::<f32>()) as u32,
             },
         ];
 
@@ -142,40 +149,49 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥 PUSH CONSTANT (vec4 SAFE)
-        let push_constant_range = vk::PushConstantRange {
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            offset: 0,
-            size: std::mem::size_of::<[f32; 4]>() as u32,
+        // 🔥 descriptor layout
+        let sampler_binding = vk::DescriptorSetLayoutBinding {
+            binding: 0,
+            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::FRAGMENT,
+            ..Default::default()
+        };
+
+        let layout_info = vk::DescriptorSetLayoutCreateInfo {
+            binding_count: 1,
+            p_bindings: &sampler_binding,
+            ..Default::default()
+        };
+
+        let descriptor_set_layout = unsafe {
+            device.device
+                .create_descriptor_set_layout(&layout_info, None)
+                .unwrap()
         };
 
         let layout_info = vk::PipelineLayoutCreateInfo {
-            push_constant_range_count: 1,
-            p_push_constant_ranges: &push_constant_range,
+            set_layout_count: 1,
+            p_set_layouts: &descriptor_set_layout,
             ..Default::default()
         };
 
         let layout = unsafe {
-            device.device
-                .create_pipeline_layout(&layout_info, None)
-                .unwrap()
+            device.device.create_pipeline_layout(&layout_info, None).unwrap()
         };
 
         let pipeline_info = vk::GraphicsPipelineCreateInfo {
             stage_count: stages.len() as u32,
             p_stages: stages.as_ptr(),
-
             p_vertex_input_state: &vertex_input,
             p_input_assembly_state: &input_assembly,
             p_viewport_state: &viewport_state,
             p_rasterization_state: &rasterizer,
             p_multisample_state: &multisample,
             p_color_blend_state: &color_blend,
-
             layout,
             render_pass: render_pass.render_pass,
             subpass: 0,
-
             ..Default::default()
         };
 
@@ -189,8 +205,6 @@ impl Pipeline {
                 .unwrap()[0]
         };
 
-        println!("Pipeline created!");
-
-        Self { pipeline, layout }
+        Self { pipeline, layout, descriptor_set_layout }
     }
 }

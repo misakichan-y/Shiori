@@ -9,6 +9,9 @@ pub mod command;
 pub mod draw;
 pub mod render_object;
 pub mod vertex_buffer;
+pub mod  descriptor;
+pub mod texture;
+
 
 use std::time;
 
@@ -22,6 +25,8 @@ use crate::engine::renderer::pipeline::Pipeline;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::draw::Draw;
 use crate::engine::renderer::vertex_buffer::VertexBuffer;
+use crate::engine::renderer::descriptor::Descriptor;
+use crate::engine::renderer::texture::Texture;
 
 use winit::window::Window;
 
@@ -37,6 +42,10 @@ pub struct Renderer {
     draw: Option<Draw>,
     vertex_buffer: Option<VertexBuffer>,
     start_time: std::time::Instant,
+    texture: Option<Texture>,
+    descriptor: Option<Descriptor>,
+
+
 }
 
 impl Renderer {
@@ -56,7 +65,8 @@ impl Renderer {
             draw: None,
             vertex_buffer: None,
             start_time: std::time::Instant::now(),
-
+            texture: None,
+            descriptor: None,
         }
     }
 
@@ -67,9 +77,12 @@ impl Renderer {
         self.create_render_pass();
         self.create_framebuffers();
         self.create_pipeline();
+        self.create_texture();
+        self.create_descriptor();
         self.create_commands();
         self.create_draw();
         self.create_vertex_buffer(); // 🔥 IMPORTANT
+       
     }
 
     fn create_surface(&mut self, window: &Window) {
@@ -141,6 +154,17 @@ impl Renderer {
         self.pipeline = Some(pipeline);
     }
 
+    fn create_descriptor(&mut self) {
+        let device = self.device.as_ref().unwrap();
+        let pipeline = self.pipeline.as_ref().unwrap();
+        let texture = self.texture.as_ref().unwrap();
+        let descriptor = Descriptor::new(device, 
+            pipeline.descriptor_set_layout, 
+            texture,
+        );
+        self.descriptor = Some(descriptor);
+    }
+
     fn create_commands(&mut self) {
         let device = self.device.as_ref().unwrap();
         let swapchain = self.swapchain.as_ref().unwrap();
@@ -171,6 +195,12 @@ impl Renderer {
         self.vertex_buffer = Some(vb);
     }
 
+    fn create_texture(&mut self) {
+        let device = self.device.as_ref().unwrap();
+        let texture = Texture::new(device, "assets/texture.png");
+        self.texture = Some(texture);       
+    }
+
     // 🔥 FINAL RENDER (NO INSTANCING, NO CAMERA)
     pub fn render(&self) {
         if self.device.is_none() {
@@ -183,6 +213,7 @@ impl Renderer {
         let draw = self.draw.as_ref().unwrap();
         let vertex_buffer = self.vertex_buffer.as_ref().unwrap();
         let time = self.start_time.elapsed().as_secs_f32();
+        let descriptor = self.descriptor.as_ref().unwrap();
 
         draw.draw_frame(
             device,
@@ -190,6 +221,8 @@ impl Renderer {
             commands,
             vertex_buffer,
             time,
+            descriptor,
+        
         );
     }
 

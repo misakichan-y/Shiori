@@ -4,6 +4,7 @@ use crate::engine::renderer::device::Device;
 use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::vertex_buffer::VertexBuffer;
+use crate::engine::renderer::descriptor::{self, Descriptor};
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -35,7 +36,9 @@ impl Draw {
         commands: &Commands,
         vertex_buffer: &VertexBuffer,
         time: f32, // 🔥 comes from renderer
-    ) {
+        descriptor: &Descriptor,
+    ) 
+    {
         let (image_index, _) = unsafe {
             swapchain.loader.acquire_next_image(
                 swapchain.swapchain,
@@ -75,6 +78,14 @@ impl Draw {
                 p_clear_values: &clear,
                 ..Default::default()
             };
+             device.device.cmd_bind_descriptor_sets(
+                cmd,
+                vk::PipelineBindPoint::GRAPHICS,
+                commands.layout,
+                0,
+                &[descriptor.set],
+                &[]
+            );
 
             device.device.cmd_begin_render_pass(
                 cmd,
@@ -109,7 +120,7 @@ impl Draw {
 
             // 🔥 ANIMATION (CORRECT)
             let x = (time * 2.0).sin() * 0.5;
-            let pos: [f32; 4] = [x, 0.0, 0.0, 0.0];
+            let pos: [f32; 4] = [x, 0.0, 0.5, 0.0];
 
             device.device.cmd_push_constants(
                 cmd,
@@ -131,7 +142,7 @@ impl Draw {
             );
 
             // 🔥 DRAW
-            device.device.cmd_draw(cmd, 3, 1, 0, 0);
+            device.device.cmd_draw(cmd, 6, 1, 0, 0); // 4 vertices for the quad
 
             device.device.cmd_end_render_pass(cmd);
             device.device.end_command_buffer(cmd).unwrap();
