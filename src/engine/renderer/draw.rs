@@ -3,9 +3,7 @@ use ash::vk;
 use crate::engine::renderer::device::Device;
 use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::command::Commands;
-use crate::engine::renderer::render_object::RenderObject;
-use crate::engine::renderer::instance_buffer::InstanceBuffer;
-use crate::engine::scene::camera::Camera;
+use crate::engine::renderer::vertex_buffer::VertexBuffer; // 👈 IMPORTANT
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -35,9 +33,7 @@ impl Draw {
         device: &Device,
         swapchain: &Swapchain,
         commands: &Commands,
-        objects: &[RenderObject],
-        instance_buffer: &InstanceBuffer,
-        camera: &Camera,
+        vertex_buffer: &VertexBuffer, // 👈 ONLY THIS
     ) {
         // 🔹 Acquire image
         let (image_index, _) = unsafe {
@@ -52,15 +48,17 @@ impl Draw {
         let cmd = commands.buffers[image_index as usize];
 
         unsafe {
-            // 🔹 Reset + begin command buffer
+            // 🔹 Reset + begin
             device.device
                 .reset_command_buffer(cmd, vk::CommandBufferResetFlags::empty())
                 .unwrap();
 
-            let begin_info = vk::CommandBufferBeginInfo::default();
-            device.device.begin_command_buffer(cmd, &begin_info).unwrap();
+            device.device.begin_command_buffer(
+                cmd,
+                &vk::CommandBufferBeginInfo::default(),
+            ).unwrap();
 
-            // 🔥 BEGIN RENDER PASS
+            // 🔥 RENDER PASS
             let clear = vk::ClearValue {
                 color: vk::ClearColorValue {
                     float32: [0.1, 0.1, 0.1, 1.0],
@@ -92,21 +90,7 @@ impl Draw {
                 commands.pipeline,
             );
 
-            // 🔥 SEND CAMERA TO SHADER (CRITICAL)
-            let cam = camera.get_matrix();
-
-            device.device.cmd_push_constants(
-                cmd,
-                commands.layout,
-                vk::ShaderStageFlags::VERTEX,
-                0,
-                std::slice::from_raw_parts(
-                    cam.as_ptr() as *const u8,
-                    std::mem::size_of::<[f32; 9]>(),
-                ),
-            );
-
-            // 🔹 Viewport + Scissor
+            // 🔹 Viewport
             let viewport = vk::Viewport {
                 x: 0.0,
                 y: 0.0,
@@ -124,60 +108,24 @@ impl Draw {
             device.device.cmd_set_viewport(cmd, 0, &[viewport]);
             device.device.cmd_set_scissor(cmd, 0, &[scissor]);
 
-            // 🔥 ===== INSTANCING WITH TRANSFORMS =====
-
-            let instance_data: Vec<[f32; 5]> = objects.iter().map(|o| {
-                [
-                    o.position[0],
-                    o.position[1],
-                    o.rotation,
-                    o.scale[0],
-                    o.scale[1],
-                ]
-            }).collect();
-             
-             // 🔥 DEBUG: how many instances will be drawn?
-             println!("instances to draw: {}", instance_data.len());
-
-            let size =
-                (instance_data.len() * std::mem::size_of::<[f32; 16]>()) as u64;
-
-            let data_ptr = device.device
-                .map_memory(
-                    instance_buffer.memory,
-                    0,
-                    size,
-                    vk::MemoryMapFlags::empty(),
-                )
-                .unwrap();
-
-            std::ptr::copy_nonoverlapping(
-                instance_data.as_ptr() as *const u8,
-                data_ptr as *mut u8,
-                size as usize,
-            );
-
-            device.device.unmap_memory(instance_buffer.memory);
-
-            // 🔹 Bind instance buffer
+            // 🔥 Bind vertex buffer (THIS IS KEY)
             device.device.cmd_bind_vertex_buffers(
                 cmd,
                 0,
-                &[instance_buffer.buffer],
+                &[vertex_buffer.buffer],
                 &[0],
             );
 
-            // 🔥 ONE INSTANCED DRAW CALL
+            // 🔥 DRAW TRIANGLE
             device.device.cmd_draw(
                 cmd,
-                3,
-                instance_data.len() as u32,
+                3, // 3 vertices
+                1, // 1 instance
                 0,
                 0,
             );
 
-            // 🔥 ===== END =====
-
+            // 🔹 End render pass
             device.device.cmd_end_render_pass(cmd);
             device.device.end_command_buffer(cmd).unwrap();
         }
@@ -200,11 +148,7 @@ impl Draw {
 
         unsafe {
             device.device
-                .queue_submit(
-                    device.graphics_queue,
-                    &[submit_info],
-                    vk::Fence::null(),
-                )
+                .queue_submit(device.graphics_queue, &[submit_info], vk::Fence::null())
                 .unwrap();
         }
 
@@ -225,9 +169,7 @@ impl Draw {
                 .queue_present(device.graphics_queue, &present_info)
                 .unwrap();
 
-            // ⚠️ temporary (slow but safe)
             device.device.queue_wait_idle(device.graphics_queue).unwrap();
         }
-        
     }
 }

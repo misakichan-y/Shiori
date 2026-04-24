@@ -15,7 +15,6 @@ fn read_shader(path: &str) -> Vec<u32> {
     let mut file = File::open(path).expect("Failed to open shader");
     let mut bytes = vec![];
     file.read_to_end(&mut bytes).unwrap();
-
     ash::util::read_spv(&mut std::io::Cursor::new(bytes)).unwrap()
 }
 
@@ -25,7 +24,6 @@ impl Pipeline {
         render_pass: &RenderPass,
         swapchain: &Swapchain,
     ) -> Self {
-        // 🔹 Load shaders
         let vert_code = read_shader("shaders/vert.spv");
         let frag_code = read_shader("shaders/frag.spv");
 
@@ -68,11 +66,11 @@ impl Pipeline {
             },
         ];
 
-        // 🔥 INSTANCING INPUT (pos + rot + scale)
+        // 🔥 SIMPLE VERTEX INPUT
         let binding = vk::VertexInputBindingDescription {
             binding: 0,
-            stride: std::mem::size_of::<[f32; 16]>() as u32,
-            input_rate: vk::VertexInputRate::INSTANCE,
+            stride: std::mem::size_of::<[f32; 2]>() as u32,
+            input_rate: vk::VertexInputRate::VERTEX,
         };
 
         let attributes = [
@@ -81,18 +79,6 @@ impl Pipeline {
                 binding: 0,
                 format: vk::Format::R32G32_SFLOAT,
                 offset: 0,
-            },
-            vk::VertexInputAttributeDescription {
-                location: 1,
-                binding: 0,
-                format: vk::Format::R32_SFLOAT,
-                offset: 8,
-            },
-            vk::VertexInputAttributeDescription {
-                location: 2,
-                binding: 0,
-                format: vk::Format::R32G32_SFLOAT,
-                offset: 12,
             },
         ];
 
@@ -104,13 +90,11 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔹 Input assembly
         let input_assembly = vk::PipelineInputAssemblyStateCreateInfo {
             topology: vk::PrimitiveTopology::TRIANGLE_LIST,
             ..Default::default()
         };
 
-        // 🔹 Viewport
         let viewport = vk::Viewport {
             x: 0.0,
             y: 0.0,
@@ -133,22 +117,19 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔹 Rasterizer
         let rasterizer = vk::PipelineRasterizationStateCreateInfo {
             polygon_mode: vk::PolygonMode::FILL,
             line_width: 1.0,
-            cull_mode: vk::CullModeFlags::BACK,
-            front_face: vk::FrontFace::CLOCKWISE,
+            cull_mode: vk::CullModeFlags::NONE,
+            front_face: vk::FrontFace::COUNTER_CLOCKWISE,
             ..Default::default()
         };
 
-        // 🔹 Multisampling
         let multisample = vk::PipelineMultisampleStateCreateInfo {
             rasterization_samples: vk::SampleCountFlags::TYPE_1,
             ..Default::default()
         };
 
-        // 🔹 Color blending
         let color_blend_attachment = vk::PipelineColorBlendAttachmentState {
             color_write_mask: vk::ColorComponentFlags::RGBA,
             blend_enable: vk::FALSE,
@@ -161,26 +142,12 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥 PUSH CONSTANT (CAMERA)
-        let push_constant_range = vk::PushConstantRange {
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            offset: 0,
-            size: std::mem::size_of::<[f32; 9]>() as u32,
-        };
-
-        let layout_info = vk::PipelineLayoutCreateInfo {
-            push_constant_range_count: 1,
-            p_push_constant_ranges: &push_constant_range,
-            ..Default::default()
-        };
+        let layout_info = vk::PipelineLayoutCreateInfo::default();
 
         let layout = unsafe {
-            device.device
-                .create_pipeline_layout(&layout_info, None)
-                .unwrap()
+            device.device.create_pipeline_layout(&layout_info, None).unwrap()
         };
 
-        // 🔹 Pipeline
         let pipeline_info = vk::GraphicsPipelineCreateInfo {
             stage_count: stages.len() as u32,
             p_stages: stages.as_ptr(),

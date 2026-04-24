@@ -8,7 +8,7 @@ pub mod pipeline;
 pub mod command;
 pub mod draw;
 pub mod render_object;
-pub mod instance_buffer;
+pub mod vertex_buffer;
 
 use crate::engine::renderer::instance::VulkanInstance;
 use crate::engine::renderer::surface::Surface;
@@ -19,11 +19,7 @@ use crate::engine::renderer::framebuffer::Framebuffers;
 use crate::engine::renderer::pipeline::Pipeline;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::draw::Draw;
-use crate::engine::renderer::render_object::RenderObject;
-use crate::engine::renderer::instance_buffer::InstanceBuffer;
-
-// 🔥 ADD THIS (camera)
-use crate::engine::scene::camera::Camera;
+use crate::engine::renderer::vertex_buffer::VertexBuffer;
 
 use winit::window::Window;
 
@@ -37,14 +33,13 @@ pub struct Renderer {
     pipeline: Option<Pipeline>,
     commands: Option<Commands>,
     draw: Option<Draw>,
-    instance_buffer: Option<InstanceBuffer>,
+    vertex_buffer: Option<VertexBuffer>,
 }
 
 impl Renderer {
-    // 🔥 Constructor
     pub fn new() -> Self {
         let instance = VulkanInstance::new();
-        println!("Vulkan Baby Started");
+        println!("Vulkan Started");
 
         Self {
             instance,
@@ -56,11 +51,10 @@ impl Renderer {
             pipeline: None,
             commands: None,
             draw: None,
-            instance_buffer: None,
+            vertex_buffer: None,
         }
     }
 
-    // 🔥 SINGLE ENTRY POINT
     pub fn init(&mut self, window: &Window) {
         self.create_surface(window);
         self.create_device();
@@ -70,10 +64,8 @@ impl Renderer {
         self.create_pipeline();
         self.create_commands();
         self.create_draw();
-        self.create_instance_buffer();
+        self.create_vertex_buffer(); // 🔥 IMPORTANT
     }
-
-    // 🔒 INTERNAL SETUP
 
     fn create_surface(&mut self, window: &Window) {
         let surface = Surface::new(
@@ -82,7 +74,7 @@ impl Renderer {
             window,
         );
 
-        println!("Surface Works");
+        println!("Surface OK");
         self.surface = Some(surface);
     }
 
@@ -95,7 +87,7 @@ impl Renderer {
             surface.surface,
         );
 
-        println!("Device created!");
+        println!("Device OK");
         self.device = Some(device);
     }
 
@@ -109,7 +101,7 @@ impl Renderer {
             surface,
         );
 
-        println!("Swapchain created!");
+        println!("Swapchain OK");
         self.swapchain = Some(swapchain);
     }
 
@@ -168,14 +160,14 @@ impl Renderer {
         self.draw = Some(draw);
     }
 
-    fn create_instance_buffer(&mut self) {
+    fn create_vertex_buffer(&mut self) {
         let device = self.device.as_ref().unwrap();
-        let buffer = InstanceBuffer::new(device, 1000);
-        self.instance_buffer = Some(buffer);
+        let vb = VertexBuffer::new(device);
+        self.vertex_buffer = Some(vb);
     }
 
-    // 🔥 FINAL RENDER FUNCTION (ONLY ONE)
-    pub fn render(&self, objects: &[RenderObject], camera: &Camera) {
+    // 🔥 FINAL RENDER (NO INSTANCING, NO CAMERA)
+    pub fn render(&self) {
         if self.device.is_none() {
             return;
         }
@@ -184,19 +176,16 @@ impl Renderer {
         let swapchain = self.swapchain.as_ref().unwrap();
         let commands = self.commands.as_ref().unwrap();
         let draw = self.draw.as_ref().unwrap();
-        let instance_buffer = self.instance_buffer.as_ref().unwrap();
+        let vertex_buffer = self.vertex_buffer.as_ref().unwrap();
 
         draw.draw_frame(
             device,
             swapchain,
             commands,
-            objects,
-            instance_buffer,
-            camera,
+            vertex_buffer,
         );
     }
 
-    // 🔥 Resize (stub)
     pub fn resize(&mut self, _width: u32, _height: u32) {
         println!("Resize not implemented yet");
     }
