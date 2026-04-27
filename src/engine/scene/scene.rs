@@ -18,6 +18,14 @@ impl Scene {
     pub fn clear(&mut self) {
         self.objects.clear();
     }
+
+    pub fn update(&mut self, delta_time: f32) {
+        // 🔥 Future movement logic
+        for obj in &mut self.objects {
+           obj.position[0] += (obj.target_position[0] - obj.position[0]) * obj.speed * delta_time;
+              obj.position[1] += (obj.target_position[1] - obj.position[1]) * obj.speed * delta_time;
+            }
+    }
     pub fn extract_render_data(&self) -> Vec<RenderObject> {
         let mut objects = self.objects.clone();
 

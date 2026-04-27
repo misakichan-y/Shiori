@@ -34,23 +34,30 @@ impl Engine {
         // 🔥 Scene
         let mut scene = Scene::new();
 
-        // Add some test objects
+        // 🔥 Objects
         scene.add_object(RenderObject {
             position: [0.0, 0.0],
             scale: [0.5, 0.5],
             texture_id: 0,
             layer: 1,
+            target_position: [0.0, 0.0], // 🔥 for future movement
+            speed: 0.5, // 🔥 for future movement
         });
-
 
         scene.add_object(RenderObject {
             position: [0.0, 0.0],
             scale: [0.2, 0.2],
             texture_id: 1,
-            layer: 0
+            layer: 0,
+            target_position: [0.5, 0.5], // 🔥 for future movemen
+            speed: 0.5, // 🔥 for future movement
         });
 
+        // 🔥 Initial camera offset
         scene.camera.position[0] = -0.5;
+
+        // 🔥 Time tracking (IMPORTANT)
+        let mut last_time = std::time::Instant::now();
 
         // Arc for winit
         let window = std::sync::Arc::new(window);
@@ -67,6 +74,8 @@ impl Engine {
 
                         WindowEvent::RedrawRequested => {
                             let objects = scene.extract_render_data();
+
+                            // 🔥 Pass camera here
                             renderer.render(objects, &scene.camera);
                         }
 
@@ -78,7 +87,16 @@ impl Engine {
                     },
 
                     Event::AboutToWait => {
-                        // (future: scene.update())
+                        // 🔥 DELTA TIME
+                        let now = std::time::Instant::now();
+                        let delta = (now - last_time).as_secs_f32();
+                        last_time = now;
+
+                        // 🔥 CAMERA ANIMATION (smooth movement)
+                        scene.camera.position[0] += 0.5 * delta;
+
+                        // (future: scene.update(delta);)
+
                         window_clone.request_redraw();
                     }
 
