@@ -26,7 +26,6 @@ use crate::engine::renderer::descriptor::Descriptor;
 use crate::engine::renderer::texture::Texture;
 use crate::engine::renderer::render_object::RenderObject;
 use crate::engine::scene::camera::Camera;
-use crate::engine::scene::transition::Transition;
 
 use winit::window::Window;
 
@@ -45,7 +44,6 @@ pub struct Renderer {
     // 🔥 MULTI TEXTURE
     textures: Vec<Texture>,
     descriptors: Vec<Descriptor>,
-    transition: Option<Transition>,
 }
 
 impl Renderer {
@@ -66,7 +64,6 @@ impl Renderer {
             vertex_buffer: None,
             textures: Vec::new(),
             descriptors: Vec::new(),
-            transition: None,
         }
     }
 
@@ -216,7 +213,7 @@ impl Renderer {
     }
 
     // 🔥 FINAL RENDER
-    pub fn render(&self, objects: Vec<RenderObject>, camera: &Camera, transition: Option<&Transition>) {    
+    pub fn render(&self, objects: Vec<RenderObject>, camera: &Camera) {
         if self.device.is_none() {
             return;
         }
@@ -235,7 +232,6 @@ impl Renderer {
             &self.descriptors,
             &objects,
             camera,
-            transition,
         );
     }
 

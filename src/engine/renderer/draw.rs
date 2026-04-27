@@ -7,7 +7,6 @@ use crate::engine::renderer::vertex_buffer::VertexBuffer;
 use crate::engine::renderer::descriptor::Descriptor;
 use crate::engine::renderer::render_object::RenderObject;
 use crate::engine::scene::camera::Camera;
-use crate::engine::scene::transition::Transition; // 🔥 NEW
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -41,7 +40,6 @@ impl Draw {
         descriptors: &[Descriptor],
         objects: &[RenderObject],
         camera: &Camera,
-        transition: Option<&Transition>, // 🔥 NEW
     ) {
         let (image_index, _) = unsafe {
             swapchain.loader.acquire_next_image(
@@ -101,8 +99,8 @@ impl Draw {
                 &[0],
             );
 
-            // 🔥 DRAW OBJECTS
             for obj in objects {
+                // 🔥 select correct texture
                 let descriptor = &descriptors[obj.texture_id];
 
                 device.device.cmd_bind_descriptor_sets(
@@ -114,16 +112,10 @@ impl Draw {
                     &[],
                 );
 
-                // 🔥 FIXED CAMERA
-                let world_x = (obj.position[0] - camera.position[0]) * camera.zoom;
-                let world_y = (obj.position[1] - camera.position[1]) * camera.zoom;
+                let world_x = (obj.position[0] * camera.zoom) + camera.position[0];
+                let world_y = (obj.position[1] * camera.zoom) + camera.position[1];
 
-                let data = [
-                    world_x,
-                    world_y,
-                    obj.scale[0] * camera.zoom,
-                    obj.scale[1] * camera.zoom,
-                ];
+                let data = [world_x, world_y, obj.scale[0] * camera.zoom, obj.scale[1] * camera.zoom];
 
                 device.device.cmd_push_constants(
                     cmd,
@@ -137,28 +129,6 @@ impl Draw {
                 );
 
                 device.device.cmd_draw(cmd, 6, 1, 0, 0);
-            }
-
-            // 🔥 DRAW FADE OVERLAY
-            if let Some(t) = transition {
-                if t.active || t.alpha > 0.0 {
-                    // 🔥 fullscreen quad
-                    let data = [0.0, 0.0, 2.0, 2.0];
-
-                    device.device.cmd_push_constants(
-                        cmd,
-                        commands.layout,
-                        vk::ShaderStageFlags::VERTEX,
-                        0,
-                        std::slice::from_raw_parts(
-                            data.as_ptr() as *const u8,
-                            std::mem::size_of::<[f32; 4]>(),
-                        ),
-                    );
-
-                    // 🔥 You will multiply fragment alpha by t.alpha in shader
-                    device.device.cmd_draw(cmd, 6, 1, 0, 0);
-                }
             }
 
             device.device.cmd_end_render_pass(cmd);

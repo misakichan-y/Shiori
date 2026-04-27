@@ -1,11 +1,9 @@
 use crate::engine::renderer::render_object::RenderObject;
 use crate::engine::scene::camera::Camera;
-use crate::engine::scene::transition::Transition;
 
 pub struct Scene {
     pub objects: Vec<RenderObject>,
     pub camera: Camera,
-    pub transition: Option<Transition>, 
 }
 
 impl Scene {
@@ -13,7 +11,6 @@ impl Scene {
         Self {
             objects: Vec::new(),
             camera: Camera::new(),
-            transition: None,
         }
     }
 
@@ -49,9 +46,6 @@ impl Scene {
             obj.position[1] =
                 obj.start_position[1] +
                 (obj.target_position[1] - obj.start_position[1]) * t;
-        }
-        if let Some(transition) = &mut self.transition {
-            transition.update(delta);
         }
     }
 
