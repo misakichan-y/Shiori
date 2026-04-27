@@ -67,7 +67,7 @@ impl Engine {
         });
 
         // 🔥 Camera
-        scene.camera.position[0] = 0.0;
+        scene.camera.position[0] = 0.5;
 
         // 🔥 START TRANSITION
         scene.transition = Some(
