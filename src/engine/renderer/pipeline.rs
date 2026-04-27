@@ -137,7 +137,7 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥🔥🔥 ALPHA BLENDING FIX
+        // 🔥 ALPHA BLENDING (FIXED)
         let color_blend_attachment = vk::PipelineColorBlendAttachmentState {
             color_write_mask: vk::ColorComponentFlags::RGBA,
             blend_enable: vk::TRUE,
@@ -157,7 +157,7 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥 Descriptor layout
+        // 🔥 Descriptor layout (texture)
         let sampler_binding = vk::DescriptorSetLayoutBinding {
             binding: 0,
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
@@ -178,9 +178,18 @@ impl Pipeline {
                 .unwrap()
         };
 
+        // 🔥 PUSH CONSTANT (CRITICAL FIX)
+        let push_constant_range = vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+            offset: 0,
+            size: std::mem::size_of::<[f32; 5]>() as u32, // 🔥 transform + alpha
+        };
+
         let layout_info = vk::PipelineLayoutCreateInfo {
             set_layout_count: 1,
             p_set_layouts: &descriptor_set_layout,
+            push_constant_range_count: 1,
+            p_push_constant_ranges: &push_constant_range,
             ..Default::default()
         };
 
@@ -213,7 +222,7 @@ impl Pipeline {
                 .unwrap()[0]
         };
 
-        println!("Pipeline created (with alpha blending)");
+        println!("Pipeline created (FIXED: blending + push constants)");
 
         Self {
             pipeline,
