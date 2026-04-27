@@ -40,8 +40,12 @@ impl Engine {
             scale: [0.5, 0.5],
             texture_id: 0,
             layer: 1,
+            start_position: [0.0, 0.0], // 🔥 for future movement
             target_position: [0.0, 0.0], // 🔥 for future movement
             speed: 0.5, // 🔥 for future movement
+
+            time: 0.0, // 🔥 for future animatio
+            duration: 2.0, // 🔥 for future animation
         });
 
         scene.add_object(RenderObject {
@@ -49,12 +53,16 @@ impl Engine {
             scale: [0.2, 0.2],
             texture_id: 1,
             layer: 0,
+            start_position: [0.0, 0.0], // 🔥 for future movement
             target_position: [0.5, 0.5], // 🔥 for future movemen
             speed: 0.5, // 🔥 for future movement
+
+            time: 0.0, // 🔥 for future animatio
+            duration: 2.0, // 🔥 for future animation
         });
 
         // 🔥 Initial camera offset
-        scene.camera.position[0] = -0.5;
+        scene.camera.position[0] = 0.0;
 
         // 🔥 Time tracking (IMPORTANT)
         let mut last_time = std::time::Instant::now();
