@@ -6,6 +6,7 @@ use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::vertex_buffer::VertexBuffer;
 use crate::engine::renderer::descriptor::Descriptor;
 use crate::engine::renderer::render_object::RenderObject;
+use crate::engine::scene::camera::Camera;
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -38,6 +39,7 @@ impl Draw {
         vertex_buffer: &VertexBuffer,
         descriptors: &[Descriptor],
         objects: &[RenderObject],
+        camera: &Camera,
     ) {
         let (image_index, _) = unsafe {
             swapchain.loader.acquire_next_image(
@@ -110,12 +112,10 @@ impl Draw {
                     &[],
                 );
 
-                let data = [
-                    obj.position[0],
-                    obj.position[1],
-                    obj.scale[0],
-                    obj.scale[1],
-                ];
+                let world_x = (obj.position[0] * camera.zoom) + camera.position[0];
+                let world_y = (obj.position[1] * camera.zoom) + camera.position[1];
+
+                let data = [world_x, world_y, obj.scale[0] * camera.zoom, obj.scale[1] * camera.zoom];
 
                 device.device.cmd_push_constants(
                     cmd,

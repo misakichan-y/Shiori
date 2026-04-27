@@ -9,7 +9,7 @@ use crate::engine::renderer::swapchain::Swapchain;
 pub struct Pipeline {
     pub pipeline: vk::Pipeline,
     pub layout: vk::PipelineLayout,
-    pub descriptor_set_layout: vk::DescriptorSetLayout, // 🔥
+    pub descriptor_set_layout: vk::DescriptorSetLayout,
 }
 
 fn read_shader(path: &str) -> Vec<u32> {
@@ -137,10 +137,18 @@ impl Pipeline {
             ..Default::default()
         };
 
+        // 🔥🔥🔥 ALPHA BLENDING FIX
         let color_blend_attachment = vk::PipelineColorBlendAttachmentState {
             color_write_mask: vk::ColorComponentFlags::RGBA,
-            blend_enable: vk::FALSE,
-            ..Default::default()
+            blend_enable: vk::TRUE,
+
+            src_color_blend_factor: vk::BlendFactor::SRC_ALPHA,
+            dst_color_blend_factor: vk::BlendFactor::ONE_MINUS_SRC_ALPHA,
+            color_blend_op: vk::BlendOp::ADD,
+
+            src_alpha_blend_factor: vk::BlendFactor::ONE,
+            dst_alpha_blend_factor: vk::BlendFactor::ZERO,
+            alpha_blend_op: vk::BlendOp::ADD,
         };
 
         let color_blend = vk::PipelineColorBlendStateCreateInfo {
@@ -149,7 +157,7 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥 descriptor layout
+        // 🔥 Descriptor layout
         let sampler_binding = vk::DescriptorSetLayoutBinding {
             binding: 0,
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
@@ -158,7 +166,7 @@ impl Pipeline {
             ..Default::default()
         };
 
-        let layout_info = vk::DescriptorSetLayoutCreateInfo {
+        let descriptor_layout_info = vk::DescriptorSetLayoutCreateInfo {
             binding_count: 1,
             p_bindings: &sampler_binding,
             ..Default::default()
@@ -166,7 +174,7 @@ impl Pipeline {
 
         let descriptor_set_layout = unsafe {
             device.device
-                .create_descriptor_set_layout(&layout_info, None)
+                .create_descriptor_set_layout(&descriptor_layout_info, None)
                 .unwrap()
         };
 
@@ -205,6 +213,12 @@ impl Pipeline {
                 .unwrap()[0]
         };
 
-        Self { pipeline, layout, descriptor_set_layout }
+        println!("Pipeline created (with alpha blending)");
+
+        Self {
+            pipeline,
+            layout,
+            descriptor_set_layout,
+        }
     }
 }

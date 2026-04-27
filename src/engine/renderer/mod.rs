@@ -25,6 +25,7 @@ use crate::engine::renderer::vertex_buffer::VertexBuffer;
 use crate::engine::renderer::descriptor::Descriptor;
 use crate::engine::renderer::texture::Texture;
 use crate::engine::renderer::render_object::RenderObject;
+use crate::engine::scene::camera::Camera;
 
 use winit::window::Window;
 
@@ -212,7 +213,7 @@ impl Renderer {
     }
 
     // 🔥 FINAL RENDER
-    pub fn render(&self, objects: &[RenderObject]) {
+    pub fn render(&self, objects: Vec<RenderObject>, camera: &Camera) {
         if self.device.is_none() {
             return;
         }
@@ -229,7 +230,8 @@ impl Renderer {
             commands,
             vertex_buffer,
             &self.descriptors,
-            objects,
+            &objects,
+            camera,
         );
     }
 

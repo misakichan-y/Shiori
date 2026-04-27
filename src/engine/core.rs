@@ -36,17 +36,21 @@ impl Engine {
 
         // Add some test objects
         scene.add_object(RenderObject {
-            position: [0.5,0.0],
+            position: [0.0, 0.0],
             scale: [0.5, 0.5],
             texture_id: 0,
+            layer: 1,
         });
 
 
         scene.add_object(RenderObject {
-            position: [-0.5, 0.0],
+            position: [0.0, 0.0],
             scale: [0.2, 0.2],
             texture_id: 1,
+            layer: 0
         });
+
+        scene.camera.position[0] = -0.5;
 
         // Arc for winit
         let window = std::sync::Arc::new(window);
@@ -63,7 +67,7 @@ impl Engine {
 
                         WindowEvent::RedrawRequested => {
                             let objects = scene.extract_render_data();
-                            renderer.render(objects);
+                            renderer.render(objects, &scene.camera);
                         }
 
                         WindowEvent::Resized(size) => {
