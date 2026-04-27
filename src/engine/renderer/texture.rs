@@ -18,7 +18,7 @@ impl Texture {
         let pixels = img.to_rgba8();
         let image_size = (4 * width * height) as vk::DeviceSize;
 
-        // 🔹 Create image
+        // 🔹 Create image (FIXED)
         let image_info = vk::ImageCreateInfo {
             image_type: vk::ImageType::TYPE_2D,
             format: vk::Format::R8G8B8A8_UNORM,
@@ -30,10 +30,10 @@ impl Texture {
             mip_levels: 1,
             array_layers: 1,
             samples: vk::SampleCountFlags::TYPE_1,
-            tiling: vk::ImageTiling::LINEAR,
+            tiling: vk::ImageTiling::LINEAR, // still simple mode
             usage: vk::ImageUsageFlags::SAMPLED,
             sharing_mode: vk::SharingMode::EXCLUSIVE,
-            initial_layout: vk::ImageLayout::PREINITIALIZED,
+            initial_layout: vk::ImageLayout::GENERAL, // 🔥 FIXED
             ..Default::default()
         };
 
@@ -41,6 +41,7 @@ impl Texture {
             device.device.create_image(&image_info, None).unwrap()
         };
 
+        // 🔹 Memory
         let mem_req = unsafe {
             device.device.get_image_memory_requirements(image)
         };
@@ -67,7 +68,8 @@ impl Texture {
             }
         }
 
-        let memory_type_index = memory_type_index.unwrap();
+        let memory_type_index = memory_type_index
+            .expect("Failed to find memory type");
 
         let alloc_info = vk::MemoryAllocateInfo {
             allocation_size: mem_req.size,
@@ -83,7 +85,7 @@ impl Texture {
             device.device.bind_image_memory(image, memory, 0).unwrap();
         }
 
-        // 🔥 Copy pixels
+        // 🔥 COPY PIXELS
         unsafe {
             let data = device.device.map_memory(
                 memory,
@@ -108,9 +110,10 @@ impl Texture {
             format: vk::Format::R8G8B8A8_UNORM,
             subresource_range: vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
                 level_count: 1,
+                base_array_layer: 0,
                 layer_count: 1,
-                ..Default::default()
             },
             ..Default::default()
         };
@@ -119,13 +122,19 @@ impl Texture {
             device.device.create_image_view(&view_info, None).unwrap()
         };
 
-        // 🔹 Sampler
+        // 🔹 Sampler (IMPROVED)
         let sampler_info = vk::SamplerCreateInfo {
             mag_filter: vk::Filter::LINEAR,
             min_filter: vk::Filter::LINEAR,
             address_mode_u: vk::SamplerAddressMode::REPEAT,
             address_mode_v: vk::SamplerAddressMode::REPEAT,
             address_mode_w: vk::SamplerAddressMode::REPEAT,
+            anisotropy_enable: vk::TRUE,
+            max_anisotropy: 16.0,
+            border_color: vk::BorderColor::INT_OPAQUE_BLACK,
+            unnormalized_coordinates: vk::FALSE,
+            compare_enable: vk::FALSE,
+            mipmap_mode: vk::SamplerMipmapMode::LINEAR,
             ..Default::default()
         };
 

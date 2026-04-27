@@ -4,7 +4,8 @@ use crate::engine::renderer::device::Device;
 use crate::engine::renderer::swapchain::Swapchain;
 use crate::engine::renderer::command::Commands;
 use crate::engine::renderer::vertex_buffer::VertexBuffer;
-use crate::engine::renderer::descriptor::{self, Descriptor};
+use crate::engine::renderer::descriptor::Descriptor;
+use crate::engine::renderer::render_object::RenderObject;
 
 pub struct Draw {
     pub image_available: vk::Semaphore,
@@ -35,10 +36,9 @@ impl Draw {
         swapchain: &Swapchain,
         commands: &Commands,
         vertex_buffer: &VertexBuffer,
-        time: f32, // 🔥 comes from renderer
-        descriptor: &Descriptor,
-    ) 
-    {
+        descriptors: &[Descriptor],
+        objects: &[RenderObject],
+    ) {
         let (image_index, _) = unsafe {
             swapchain.loader.acquire_next_image(
                 swapchain.swapchain,
@@ -60,10 +60,9 @@ impl Draw {
                 &vk::CommandBufferBeginInfo::default(),
             ).unwrap();
 
-            // 🔥 CLEAR
             let clear = vk::ClearValue {
                 color: vk::ClearColorValue {
-                    float32: [0.1, 0.1, 0.1, 1.0],
+                    float32: [0.1, 0.0, 0.0, 1.0],
                 },
             };
 
@@ -78,14 +77,6 @@ impl Draw {
                 p_clear_values: &clear,
                 ..Default::default()
             };
-             device.device.cmd_bind_descriptor_sets(
-                cmd,
-                vk::PipelineBindPoint::GRAPHICS,
-                commands.layout,
-                0,
-                &[descriptor.set],
-                &[]
-            );
 
             device.device.cmd_begin_render_pass(
                 cmd,
@@ -93,47 +84,12 @@ impl Draw {
                 vk::SubpassContents::INLINE,
             );
 
-            // 🔹 PIPELINE
             device.device.cmd_bind_pipeline(
                 cmd,
                 vk::PipelineBindPoint::GRAPHICS,
                 commands.pipeline,
             );
 
-            // 🔹 VIEWPORT + SCISSOR
-            let viewport = vk::Viewport {
-                x: 0.0,
-                y: 0.0,
-                width: swapchain.extent.width as f32,
-                height: swapchain.extent.height as f32,
-                min_depth: 0.0,
-                max_depth: 1.0,
-            };
-
-            let scissor = vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: swapchain.extent,
-            };
-
-            device.device.cmd_set_viewport(cmd, 0, &[viewport]);
-            device.device.cmd_set_scissor(cmd, 0, &[scissor]);
-
-            // 🔥 ANIMATION (CORRECT)
-            let x = (time * 2.0).sin() * 0.5;
-            let pos: [f32; 4] = [x, 0.0, 0.5, 0.0];
-
-            device.device.cmd_push_constants(
-                cmd,
-                commands.layout,
-                vk::ShaderStageFlags::VERTEX,
-                0,
-                std::slice::from_raw_parts(
-                    pos.as_ptr() as *const u8,
-                    std::mem::size_of::<[f32; 4]>(),
-                ),
-            );
-
-            // 🔹 VERTEX BUFFER
             device.device.cmd_bind_vertex_buffers(
                 cmd,
                 0,
@@ -141,14 +97,44 @@ impl Draw {
                 &[0],
             );
 
-            // 🔥 DRAW
-            device.device.cmd_draw(cmd, 6, 1, 0, 0); // 4 vertices for the quad
+            for obj in objects {
+                // 🔥 select correct texture
+                let descriptor = &descriptors[obj.texture_id];
+
+                device.device.cmd_bind_descriptor_sets(
+                    cmd,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    commands.layout,
+                    0,
+                    &[descriptor.set],
+                    &[],
+                );
+
+                let data = [
+                    obj.position[0],
+                    obj.position[1],
+                    obj.scale[0],
+                    obj.scale[1],
+                ];
+
+                device.device.cmd_push_constants(
+                    cmd,
+                    commands.layout,
+                    vk::ShaderStageFlags::VERTEX,
+                    0,
+                    std::slice::from_raw_parts(
+                        data.as_ptr() as *const u8,
+                        std::mem::size_of::<[f32; 4]>(),
+                    ),
+                );
+
+                device.device.cmd_draw(cmd, 6, 1, 0, 0);
+            }
 
             device.device.cmd_end_render_pass(cmd);
             device.device.end_command_buffer(cmd).unwrap();
         }
 
-        // 🔹 SUBMIT
         let wait_semaphores = [self.image_available];
         let signal_semaphores = [self.render_finished];
         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
@@ -170,7 +156,6 @@ impl Draw {
                 .unwrap();
         }
 
-        // 🔹 PRESENT
         let swapchains = [swapchain.swapchain];
 
         let present_info = vk::PresentInfoKHR {

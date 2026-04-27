@@ -6,6 +6,7 @@ use winit::{
 
 use crate::engine::renderer::Renderer;
 use crate::engine::scene::Scene;
+use crate::engine::renderer::render_object::RenderObject;
 
 pub struct Engine {
     pub event_loop: EventLoop<()>,
@@ -18,27 +19,40 @@ impl Engine {
     }
 
     pub fn run(self) {
-        // 🔥 Create renderer
+        // 🔥 Renderer
         let mut renderer = Renderer::new();
 
-        // 🔥 Create window
+        // 🔥 Window
         let window = WindowBuilder::new()
             .with_title("Shiori")
             .build(&self.event_loop)
             .unwrap();
 
-        // 🔥 Initialize renderer (single call)
+        // 🔥 Init renderer
         renderer.init(&window);
 
-        // 🔥 Create scene
+        // 🔥 Scene
         let mut scene = Scene::new();
-        scene.add_entity();
 
-        // Arc for winit loop
+        // Add some test objects
+        scene.add_object(RenderObject {
+            position: [0.5,0.0],
+            scale: [0.5, 0.5],
+            texture_id: 0,
+        });
+
+
+        scene.add_object(RenderObject {
+            position: [-0.5, 0.0],
+            scale: [0.2, 0.2],
+            texture_id: 1,
+        });
+
+        // Arc for winit
         let window = std::sync::Arc::new(window);
         let window_clone = window.clone();
 
-        // 🔥 Event loop
+        // 🔥 Main loop
         self.event_loop
             .run(move |event, elwt| {
                 match event {
@@ -47,14 +61,11 @@ impl Engine {
                             elwt.exit();
                         }
 
-                        // 🔥 Render frame
                         WindowEvent::RedrawRequested => {
                             let objects = scene.extract_render_data();
-                            renderer.render();
-
+                            renderer.render(objects);
                         }
 
-                        // 🔥 Handle resize (stub for now)
                         WindowEvent::Resized(size) => {
                             renderer.resize(size.width, size.height);
                         }
@@ -62,9 +73,8 @@ impl Engine {
                         _ => {}
                     },
 
-                    // 🔥 Game loop tick
                     Event::AboutToWait => {
-                        scene.update();
+                        // (future: scene.update())
                         window_clone.request_redraw();
                     }
 

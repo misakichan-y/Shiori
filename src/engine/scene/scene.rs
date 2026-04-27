@@ -1,63 +1,22 @@
-use super::entity::Entity;
 use crate::engine::renderer::render_object::RenderObject;
-use super::camera::Camera;
 
 pub struct Scene {
-    pub entities: Vec<Entity>,
-    pub camera: Camera,
-    next_id: u32,
-}
+    pub objects: Vec<RenderObject>,
+}   
 
 impl Scene {
     pub fn new() -> Self {
         Self {
-            entities: Vec::new(),
-            camera: Camera::new(),
-            next_id: 0,
+            objects: Vec::new(),
         }
     }
-
-    pub fn add_entity(&mut self) -> &mut Entity {
-        let entity = Entity::new(self.next_id);
-        self.next_id += 1;
-
-        self.entities.push(entity);
-        self.entities.last_mut().unwrap()
+    pub fn add_object(&mut self, object: RenderObject) {
+        self.objects.push(object);
     }
-
-    // 🔥 Update logic (runs every frame)
-    pub fn update(&mut self) {
-        for entity in &mut self.entities {
-            // 🔄 Rotate each entity
-            entity.transform.rotation[0] += 0.05;
-
-            // (optional) keep rotation in range
-            if entity.transform.rotation[0] > std::f32::consts::TAU {
-                entity.transform.rotation[0] = 0.0;
-            }
-        }
+    pub fn clear(&mut self) {
+        self.objects.clear();
     }
-
-    // 🔥 Extract data for renderer (CPU → GPU)
-    pub fn extract_render_data(&self) -> Vec<RenderObject> {
-        let mut objects = Vec::new();
-
-        for entity in &self.entities {
-            if entity.visible {
-                objects.push(RenderObject {
-                    position: [
-                        entity.transform.position[0],
-                        entity.transform.position[1],
-                    ],
-                    rotation: entity.transform.rotation[0],
-                    scale: [
-                        entity.transform.scale[0],
-                        entity.transform.scale[1],
-                    ],
-                });
-            }
-        }
-
-        objects
+    pub fn extract_render_data(&self) -> &[RenderObject] {
+        &self.objects
     }
 }
