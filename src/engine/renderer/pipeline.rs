@@ -7,8 +7,7 @@ use crate::engine::renderer::render_pass::RenderPass;
 use crate::engine::renderer::swapchain::Swapchain;
 
 pub struct Pipeline {
-    pub pipeline: vk::Pipeline,        // 🔥 texture pipeline
-    pub fade_pipeline: vk::Pipeline,   // 🔥 NEW fade pipeline
+    pub pipeline: vk::Pipeline,
     pub layout: vk::PipelineLayout,
     pub descriptor_set_layout: vk::DescriptorSetLayout,
 }
@@ -26,11 +25,8 @@ impl Pipeline {
         render_pass: &RenderPass,
         swapchain: &Swapchain,
     ) -> Self {
-
-        // 🔥 Load shaders
         let vert_code = read_shader("shaders/vert.spv");
         let frag_code = read_shader("shaders/frag.spv");
-        let fade_frag_code = read_shader("shaders/fade.spv"); // 🔥 NEW
 
         let vert_module = unsafe {
             device.device.create_shader_module(
@@ -54,20 +50,8 @@ impl Pipeline {
             ).unwrap()
         };
 
-        let fade_frag_module = unsafe {
-            device.device.create_shader_module(
-                &vk::ShaderModuleCreateInfo {
-                    code_size: fade_frag_code.len() * 4,
-                    p_code: fade_frag_code.as_ptr(),
-                    ..Default::default()
-                },
-                None,
-            ).unwrap()
-        };
-
         let entry = std::ffi::CString::new("main").unwrap();
 
-        // 🔥 NORMAL pipeline stages
         let stages = [
             vk::PipelineShaderStageCreateInfo {
                 stage: vk::ShaderStageFlags::VERTEX,
@@ -83,23 +67,7 @@ impl Pipeline {
             },
         ];
 
-        // 🔥 FADE pipeline stages
-        let fade_stages = [
-            vk::PipelineShaderStageCreateInfo {
-                stage: vk::ShaderStageFlags::VERTEX,
-                module: vert_module, // reuse vertex shader
-                p_name: entry.as_ptr(),
-                ..Default::default()
-            },
-            vk::PipelineShaderStageCreateInfo {
-                stage: vk::ShaderStageFlags::FRAGMENT,
-                module: fade_frag_module,
-                p_name: entry.as_ptr(),
-                ..Default::default()
-            },
-        ];
-
-        // 🔥 Vertex input
+        // 🔥 Vertex input (pos + uv)
         let binding = vk::VertexInputBindingDescription {
             binding: 0,
             stride: (4 * std::mem::size_of::<f32>()) as u32,
@@ -169,7 +137,7 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥 Alpha blending (important for fade)
+        // 🔥 ALPHA BLENDING (FIXED)
         let color_blend_attachment = vk::PipelineColorBlendAttachmentState {
             color_write_mask: vk::ColorComponentFlags::RGBA,
             blend_enable: vk::TRUE,
@@ -189,7 +157,7 @@ impl Pipeline {
             ..Default::default()
         };
 
-        // 🔥 Descriptor layout (only for texture pipeline)
+        // 🔥 Descriptor layout (texture)
         let sampler_binding = vk::DescriptorSetLayoutBinding {
             binding: 0,
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
@@ -210,11 +178,11 @@ impl Pipeline {
                 .unwrap()
         };
 
-        // 🔥 Push constants (transform + alpha)
+        // 🔥 PUSH CONSTANT (CRITICAL FIX)
         let push_constant_range = vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
             offset: 0,
-            size: std::mem::size_of::<[f32; 5]>() as u32,
+            size: std::mem::size_of::<[f32; 5]>() as u32, // 🔥 transform + alpha
         };
 
         let layout_info = vk::PipelineLayoutCreateInfo {
@@ -229,59 +197,35 @@ impl Pipeline {
             device.device.create_pipeline_layout(&layout_info, None).unwrap()
         };
 
-        // 🔥 NORMAL pipeline
+        let pipeline_info = vk::GraphicsPipelineCreateInfo {
+            stage_count: stages.len() as u32,
+            p_stages: stages.as_ptr(),
+            p_vertex_input_state: &vertex_input,
+            p_input_assembly_state: &input_assembly,
+            p_viewport_state: &viewport_state,
+            p_rasterization_state: &rasterizer,
+            p_multisample_state: &multisample,
+            p_color_blend_state: &color_blend,
+            layout,
+            render_pass: render_pass.render_pass,
+            subpass: 0,
+            ..Default::default()
+        };
+
         let pipeline = unsafe {
             device.device
                 .create_graphics_pipelines(
                     vk::PipelineCache::null(),
-                    &[vk::GraphicsPipelineCreateInfo {
-                        stage_count: stages.len() as u32,
-                        p_stages: stages.as_ptr(),
-                        p_vertex_input_state: &vertex_input,
-                        p_input_assembly_state: &input_assembly,
-                        p_viewport_state: &viewport_state,
-                        p_rasterization_state: &rasterizer,
-                        p_multisample_state: &multisample,
-                        p_color_blend_state: &color_blend,
-                        layout,
-                        render_pass: render_pass.render_pass,
-                        subpass: 0,
-                        ..Default::default()
-                    }],
+                    &[pipeline_info],
                     None,
                 )
                 .unwrap()[0]
         };
 
-        // 🔥 FADE pipeline
-        let fade_pipeline = unsafe {
-            device.device
-                .create_graphics_pipelines(
-                    vk::PipelineCache::null(),
-                    &[vk::GraphicsPipelineCreateInfo {
-                        stage_count: fade_stages.len() as u32,
-                        p_stages: fade_stages.as_ptr(),
-                        p_vertex_input_state: &vertex_input,
-                        p_input_assembly_state: &input_assembly,
-                        p_viewport_state: &viewport_state,
-                        p_rasterization_state: &rasterizer,
-                        p_multisample_state: &multisample,
-                        p_color_blend_state: &color_blend,
-                        layout,
-                        render_pass: render_pass.render_pass,
-                        subpass: 0,
-                        ..Default::default()
-                    }],
-                    None,
-                )
-                .unwrap()[0]
-        };
-
-        println!("Pipelines created (texture + fade)");
+        println!("Pipeline created (FIXED: blending + push constants)");
 
         Self {
             pipeline,
-            fade_pipeline,
             layout,
             descriptor_set_layout,
         }
